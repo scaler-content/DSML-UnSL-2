@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>t-SNE post read</title>
+<style>
+:root{
+  --p-900:#2e1065;
+  --p-800:#4c1d95;
+  --p-700:#6d28d9;
+  --p-600:#7c3aed;
+  --p-500:#9333ea;
+  --p-400:#a855f7;
+  --p-300:#c084fc;
+  --p-200:#e9d5ff;
+  --p-100:#f3e8ff;
+  --white:#ffffff;
+  --ink:#1e1033;
+  --ink-soft:#4a3a66;
+  --line:#e4d4fb;
+  --bg:#ffffff;
+  --card:#ffffff;
+  --shadow: 0 10px 30px -12px rgba(109,40,217,.25);
+  --radius:16px;
+  --maxw:880px;
+  --code-bg:#2b1458;
+  --code-ink:#f3e8ff;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family: "Source Serif Pro","Iowan Old Style", Georgia, "Times New Roman", serif;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+.sans{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;}
+h1,h2,h3,h4{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  font-weight:800;
+  color:var(--ink);
+  letter-spacing:-0.01em;
+  line-height:1.2;
+}
+a{color:var(--p-600);}
+
+/* ---------- Top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50;
+  background:rgba(255,255,255,.85);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 20px;
+}
+.topbar .brand{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;
+  font-weight:800; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--p-700);
+  display:flex; align-items:center; gap:8px;
+}
+.topbar .brand .dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,var(--p-500),var(--p-300));}
+.progress-track{
+  position:fixed; top:0; left:0; height:3px; width:0%;
+  background:linear-gradient(90deg,var(--p-700),var(--p-400));
+  z-index:60; transition:width .1s linear;
+}
+button:focus-visible, [tabindex]:focus-visible, a:focus-visible, input:focus-visible{
+  outline:3px solid var(--p-400); outline-offset:2px;
+}
+
+/* ---------- Hero ---------- */
+.hero{
+  padding:72px 20px 56px;
+  background:
+    radial-gradient(1100px 420px at 50% -10%, var(--p-200), transparent 60%),
+    linear-gradient(180deg,var(--p-100),var(--bg));
+  text-align:center;
+  border-bottom:1px solid var(--line);
+}
+.hero .eyebrow{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;
+  font-size:13px; font-weight:800; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--p-600); margin-bottom:14px;
+}
+.hero h1{
+  font-size:clamp(2.1rem,5vw,3.4rem);
+  margin:0 auto 18px; max-width:760px;
+  background:linear-gradient(135deg,var(--p-800),var(--p-500));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.hero p.sub{
+  max-width:620px; margin:0 auto; color:var(--ink-soft); font-size:1.08rem;
+  font-family:inherit;
+}
+.hero .chips{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:26px;}
+.chip{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;
+  font-size:12.5px; font-weight:700; color:var(--p-700);
+  background:var(--white); border:1px solid var(--p-200);
+  padding:6px 12px; border-radius:999px;
+}
+
+/* ---------- Layout ---------- */
+main{max-width:var(--maxw); margin:0 auto; padding:10px 20px 100px;}
+section.block{margin:64px 0;}
+section.block > h2{
+  font-size:clamp(1.5rem,3vw,1.9rem);
+  margin:0 0 6px;
+  display:flex; align-items:center; gap:12px;
+}
+section.block > h2 .num{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:34px;height:34px;border-radius:10px; flex:none;
+  background:linear-gradient(135deg,var(--p-600),var(--p-400));
+  color:#fff; font-size:15px; font-weight:800;
+}
+.kicker{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;
+  font-size:12.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--p-500); margin:0 0 10px 46px;
+}
+h3{font-size:1.2rem; margin:28px 0 10px;}
+p{margin:0 0 14px;}
+ul,ol{padding-left:22px; margin:0 0 14px;}
+li{margin-bottom:6px;}
+strong{color:var(--p-700); font-weight:700;}
+
+/* ---------- Cards / callouts ---------- */
+.card{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:22px 24px; box-shadow:var(--shadow); margin:22px 0;
+}
+.story{
+  background:linear-gradient(160deg,var(--p-800),var(--p-600));
+  color:#fff; border-radius:20px; padding:30px 28px; box-shadow:var(--shadow);
+  position:relative; overflow:hidden;
+}
+.story::before{
+  content:""; position:absolute; inset:0;
+  background:radial-gradient(500px 220px at 90% -20%, rgba(255,255,255,.18), transparent 60%);
+}
+.story h3{color:#fff; margin-top:0;}
+.story strong{color:#fff; text-decoration:underline; text-decoration-color:var(--p-300); text-underline-offset:3px;}
+.story p{position:relative;}
+.story ul{position:relative;}
+.callout{
+  border-left:4px solid var(--p-500);
+  background:var(--p-100); border-radius:0 12px 12px 0;
+  padding:16px 18px; margin:18px 0;
+}
+.callout .label{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;
+  font-size:11.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--p-600); margin-bottom:6px; display:block;
+}
+.callout.ai{ border-left-color:var(--p-700); }
+.callout.rule{ border-left-color:var(--p-400); }
+.callout p:last-child{margin-bottom:0;}
+blockquote.manager{
+  margin:18px 0; padding:14px 18px; font-style:italic; color:var(--ink-soft);
+  border-left:3px solid var(--p-300); background:transparent;
+}
+blockquote.idea{
+  margin:18px 0; padding:16px 20px; font-style:italic; color:var(--p-800);
+  border-left:4px solid var(--p-500); background:var(--p-100); border-radius:0 12px 12px 0;
+}
+
+/* ---------- Tables ---------- */
+.table-wrap{overflow-x:auto; margin:18px 0; border-radius:12px; border:1px solid var(--line);}
+table{border-collapse:collapse; width:100%; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif; font-size:14.5px;}
+th,td{padding:11px 14px; text-align:left; border-bottom:1px solid var(--line);}
+th{background:var(--p-100); color:var(--p-800); font-weight:800; font-size:13px;}
+tr:last-child td{border-bottom:none;}
+
+/* ---------- Images ---------- */
+figure{margin:22px 0; text-align:center;}
+figure img{max-width:100%; border-radius:14px; border:1px solid var(--line); box-shadow:var(--shadow);}
+figcaption{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;
+  font-size:13px; color:var(--ink-soft); margin-top:10px;
+}
+
+/* ---------- Code ---------- */
+pre{
+  background:var(--code-bg); color:var(--code-ink); border-radius:12px;
+  padding:16px 18px; overflow-x:auto; font-size:13.3px; line-height:1.55;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  margin:16px 0;
+}
+code{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;}
+.out-label{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;
+  font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--p-500); margin:14px 0 -6px;
+}
+details.codebox{
+  border:1px solid var(--line); border-radius:12px; margin:16px 0; background:var(--card);
+}
+details.codebox summary{
+  cursor:pointer; padding:12px 16px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;
+  font-weight:700; font-size:13.5px; color:var(--p-700); list-style:none; display:flex; align-items:center; gap:8px;
+}
+details.codebox summary::-webkit-details-marker{display:none;}
+details.codebox summary::before{content:"▸"; color:var(--p-500); transition:transform .15s;}
+details.codebox[open] summary::before{transform:rotate(90deg);}
+details.codebox > div{padding:0 16px 16px;}
+
+/* ---------- Tabs ---------- */
+.tabs{display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;}
+.tab-btn{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;
+  font-weight:700; font-size:13.5px; padding:9px 16px; border-radius:999px;
+  border:1px solid var(--p-300); background:var(--white); color:var(--p-700); cursor:pointer;
+}
+.tab-btn[aria-selected="true"]{background:linear-gradient(135deg,var(--p-600),var(--p-400)); color:#fff; border-color:transparent;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block; animation:fade .25s ease;}
+@keyframes fade{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+
+/* ---------- Accordion ---------- */
+.accordion-item{border:1px solid var(--line); border-radius:12px; margin-bottom:10px; overflow:hidden; background:var(--card);}
+.accordion-head{
+  width:100%; text-align:left; background:none; border:none; cursor:pointer;
+  padding:14px 18px; display:flex; justify-content:space-between; align-items:center; gap:12px;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif; font-weight:700; color:var(--p-700); font-size:14.5px;
+}
+.accordion-head .chevron{transition:transform .2s; color:var(--p-500); flex:none;}
+.accordion-item.open .chevron{transform:rotate(180deg);}
+.accordion-body{max-height:0; overflow:hidden; transition:max-height .25s ease;}
+.accordion-body > div{padding:0 18px 16px; font-size:14.5px; color:var(--ink-soft);}
+.accordion-body strong{color:var(--p-700);}
+
+/* ---------- Interactive widget shell ---------- */
+.widget{
+  border:1px solid var(--line); border-radius:var(--radius); background:var(--card);
+  padding:20px; margin:20px 0; box-shadow:var(--shadow);
+}
+.widget h4{
+  margin:0 0 4px; font-size:15px; color:var(--p-700); display:flex; align-items:center; gap:8px;
+}
+.widget h4 .tag{
+  font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+  background:var(--p-100); color:var(--p-600); padding:2px 8px; border-radius:999px;
+}
+.widget .hint{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif; font-size:13px; color:var(--ink-soft); margin-bottom:14px;}
+.widget-grid{display:grid; grid-template-columns:1.1fr .9fr; gap:18px; align-items:start;}
+@media(max-width:640px){.widget-grid{grid-template-columns:1fr;}}
+.control-row{display:flex; align-items:center; gap:12px; margin:10px 0; flex-wrap:wrap; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif; font-size:13.5px;}
+input[type=range]{
+  flex:1; min-width:120px; accent-color:var(--p-600); height:6px; cursor:pointer;
+}
+.readout{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background:var(--p-100); color:var(--p-700); border-radius:8px; padding:4px 10px; font-size:13px; font-weight:700;
+  min-width:70px; text-align:center;
+}
+.btn-row{display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;}
+.btn{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif; font-weight:700; font-size:13px;
+  background:var(--white); border:1px solid var(--p-300); color:var(--p-700);
+  padding:8px 14px; border-radius:10px; cursor:pointer;
+}
+.btn.active, .btn:hover{background:linear-gradient(135deg,var(--p-600),var(--p-400)); color:#fff; border-color:transparent;}
+svg.viz{width:100%; height:auto; display:block; background:var(--p-100); border-radius:12px;}
+.stat-mini{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;}
+.stat-pill{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif; font-size:12.5px;
+  background:var(--p-100); color:var(--p-700); padding:6px 12px; border-radius:10px; font-weight:700;
+}
+.bar-compare{display:flex; flex-direction:column; gap:10px; margin-top:6px;}
+.bar-row{display:flex; align-items:center; gap:10px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif; font-size:13px;}
+.bar-row .bar-label{width:120px; flex:none; color:var(--ink-soft); font-weight:700;}
+.bar-track{flex:1; height:22px; background:var(--p-100); border-radius:6px; overflow:hidden; position:relative;}
+.bar-fill{height:100%; background:linear-gradient(90deg,var(--p-700),var(--p-400)); border-radius:6px; transition:width .3s ease; display:flex; align-items:center; justify-content:flex-end; padding-right:8px;}
+.bar-fill span{color:#fff; font-size:11.5px; font-weight:800;}
+
+/* ---------- Quiz ---------- */
+.quiz{background:linear-gradient(160deg,var(--p-700),var(--p-500)); color:#fff; border-radius:18px; padding:24px 26px; margin:26px 0; box-shadow:var(--shadow);}
+.quiz .qlabel{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif; font-size:11.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; opacity:.85; margin-bottom:8px;}
+.quiz h4{color:#fff; font-size:1.05rem; margin:0 0 16px;}
+.quiz .opt{
+  display:block; width:100%; text-align:left; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;
+  background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.35); color:#fff;
+  padding:12px 16px; border-radius:10px; margin-bottom:9px; cursor:pointer; font-size:14px;
+}
+.quiz .opt:hover{background:rgba(255,255,255,.2);}
+.quiz .opt.correct{background:#22c55e; border-color:#22c55e;}
+.quiz .opt.wrong{background:#ef4444; border-color:#ef4444;}
+.quiz .feedback{
+  margin-top:14px; background:rgba(255,255,255,.12); border-radius:10px; padding:14px 16px;
+  font-size:14px; display:none;
+}
+.quiz .feedback.show{display:block; animation:fade .3s ease;}
+.openq{background:var(--p-100); border-radius:14px; padding:20px 22px; margin:22px 0;}
+.openq .qlabel{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif; font-size:11.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--p-600); margin-bottom:8px;}
+.reveal-btn{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif; font-weight:700; font-size:13px;
+  background:var(--p-700); color:#fff; border:none; padding:9px 16px; border-radius:999px; cursor:pointer; margin-top:4px;
+}
+.answer-box{display:none; margin-top:14px; padding-top:14px; border-top:1px dashed var(--p-300);}
+.answer-box.show{display:block; animation:fade .3s ease;}
+
+/* ---------- Steps ---------- */
+.stepper{display:flex; gap:6px; margin-bottom:18px; flex-wrap:wrap;}
+.step-dot{
+  flex:1; min-width:30px; height:6px; border-radius:4px; background:var(--p-200); cursor:pointer; border:none;
+}
+.step-dot.active{background:linear-gradient(90deg,var(--p-600),var(--p-400));}
+.step-view{min-height:150px;}
+.step-num{
+  display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:50%;
+  background:var(--p-600); color:#fff; font-weight:800; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;
+  margin-bottom:10px; font-size:14px;
+}
+
+/* ---------- Cards grid ---------- */
+.grid-cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin:20px 0;}
+.mini-card{
+  background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;
+}
+.mini-card .mc-title{font-weight:800; color:var(--p-700); font-size:14px; margin-bottom:6px;}
+.mini-card p{font-size:13.3px; color:var(--ink-soft); margin:0;}
+
+/* ---------- Takeaway box ---------- */
+.takeaways{
+  background:var(--p-100); border:1px solid var(--p-200); border-radius:16px; padding:24px 26px; margin:26px 0;
+}
+.takeaways h3{margin-top:0;}
+.takeaways ul{margin-bottom:0;}
+
+footer{
+  text-align:center; padding:40px 20px 60px; color:var(--ink-soft);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif; font-size:13px;
+  border-top:1px solid var(--line); margin-top:40px;
+}
+footer .fname{color:var(--p-600); font-weight:800;}
+
+@media(max-width:480px){
+  .hero{padding:56px 16px 44px;}
+  section.block{margin:48px 0;}
+  .kicker{margin-left:0;}
+  section.block > h2{flex-wrap:wrap;}
+  .bar-row .bar-label{width:92px;}
+}
+</style>
+</head>
+<body>
+
+<div class="progress-track" id="progressTrack"></div>
+<div class="topbar">
+  <div class="brand"><span class="dot"></span>t-SNE post read</div>
+</div>
+
+<header class="hero">
+  <div class="eyebrow">Unsupervised Learning · Interactive Read</div>
+  <h1>t-SNE: Visualising High‑Dimensional Data</h1>
+  <p class="sub">PCA couldn't separate SwiftParcel's lookalike digits. Here's how t-SNE turns distances into neighbour probabilities, fixes the "crowding problem," and builds maps where similar things sit together — and how to read those maps without being misled by them.</p>
+  <div class="chips">
+    <span class="chip">Neighbour probabilities</span>
+    <span class="chip">Perplexity</span>
+    <span class="chip">Crowding problem</span>
+    <span class="chip">Build t-SNE from scratch</span>
+  </div>
+</header>
+
+<main>
+
+<!-- ============ OPENING STORY ============ -->
+<section class="block">
+  <div class="story">
+    <h3>The Map That Wouldn't Separate</h3>
+    <p>Last week, Meera at <strong>SwiftParcel</strong> used PCA to shrink handwritten PIN-code scans from 784 numbers to a few dozen, and drew a 2D map of the digits. The reaction from the operations head was mixed:</p>
+    <ul>
+      <li>"Good, the 0s and 1s are clearly separated."</li>
+      <li>"But 4s, 7s and 9s are sitting on top of each other. If this is what the data looks like, I can't tell whether the hubs' scanners are producing distinct digit shapes or just noise."</li>
+    </ul>
+    <p>The operations team wants a map where <strong>similar-looking scans sit together as visible islands</strong>, to spot unusual scanner batches and handwriting styles. There are still <strong>no labels</strong>.</p>
+    <p>Meera realises the problem. PCA looks for the single direction of greatest overall spread — it cares about the <strong>big picture</strong>. What the operations team wants is a map that respects <strong>who is near whom</strong>: the local neighbourhoods.</p>
+    <p style="margin-bottom:0;">That is exactly what <strong>t-SNE</strong> does. Today: how it works, why it can unravel what PCA cannot, and how it can mislead you if you read the map the wrong way.</p>
+  </div>
+</section>
+
+<!-- ============ 1. PCA RECAP ============ -->
+<section class="block" id="sec1">
+  <div class="kicker">Section 1</div>
+  <h2><span class="num">1</span>PCA Recap: Three Questions</h2>
+  <p>PCA finds new axes (principal components) that are the <strong>eigenvectors of the covariance matrix</strong>, ordered by how much variance they capture.</p>
+
+  <div class="openq" style="margin-top:0;">
+    <div class="qlabel">Think first</div>
+    <h4 style="margin:0 0 10px; font-size:1.05rem;">If we have 5 PCs, what is the angle between any two of them?</h4>
+    <button class="reveal-btn" data-reveal>Reveal answer</button>
+    <div class="answer-box"><p style="margin-bottom:0;">Eigenvectors of a symmetric matrix (like the covariance matrix) are <strong>orthogonal</strong>, so the angle is always <strong>90 degrees</strong>.</p></div>
+  </div>
+
+  <div class="openq">
+    <div class="qlabel">Think first</div>
+    <h4 style="margin:0 0 10px; font-size:1.05rem;">Is there multicollinearity after PCA?</h4>
+    <button class="reveal-btn" data-reveal>Reveal answer</button>
+    <div class="answer-box"><p style="margin-bottom:0;">No. The PCs are perpendicular, so the dot product between any two of them is zero — the transformed features are uncorrelated. This is a real advantage of PCA.</p></div>
+  </div>
+
+  <div class="openq">
+    <div class="qlabel">Think first</div>
+    <h4 style="margin:0 0 10px; font-size:1.05rem;">PCA has assumptions. What are they?</h4>
+    <button class="reveal-btn" data-reveal>Reveal answer</button>
+    <div class="answer-box">
+      <p><strong>1. Features are correlated.</strong> If features are uncorrelated, variance is spread evenly across the originals — every PC captures a similar amount, so there's little to compress.</p>
+      <p style="margin-bottom:0;"><strong>2. Features are on comparable scales.</strong> PCA chases variance, and features with big numbers have big variance, so they dominate the first PC. Standardise first.</p>
+    </div>
+  </div>
+
+  <h3>Seeing the scale assumption in action</h3>
+  <p>Weight (kg, 40–120) and height (cm, 150–200) — both uniformly spread, but on very different numeric ranges.</p>
+
+  <div class="widget">
+    <h4>PCA before vs. after standardising <span class="tag">interactive</span></h4>
+    <p class="hint">Same underlying data, only the units change. Toggle to see how explained variance shifts between the two features.</p>
+    <div class="btn-row" id="scaleToggle">
+      <button class="btn active" data-scale="raw">Unscaled</button>
+      <button class="btn" data-scale="std">Standardised</button>
+    </div>
+    <div class="bar-compare" id="scaleBars"></div>
+    <p class="hint" style="margin-top:12px; margin-bottom:0;" id="scaleCaption"></p>
+  </div>
+</section>
+
+<!-- QUIZ 1 -->
+<div class="quiz" data-quiz>
+  <div class="qlabel">Quick check</div>
+  <h4>A teammate says: "After PCA, my features are perpendicular, so I no longer have multicollinearity, and I can skip standardising because PCA is scale-free." What is right and what is wrong?</h4>
+  <button class="opt" data-correct="false">Both statements are correct</button>
+  <button class="opt" data-correct="true">The first is correct, the second is wrong</button>
+  <button class="opt" data-correct="false">The first is wrong, the second is correct</button>
+  <button class="opt" data-correct="false">Both statements are wrong</button>
+  <div class="feedback"><strong>Correct.</strong> PCs are orthogonal, so the transformed features are uncorrelated and multicollinearity is gone. But PCA is <em>not</em> scale-free — it maximises variance, so features with larger numeric ranges dominate unless you standardise first.</div>
+</div>
+
+<!-- ============ 2. WHERE PCA FALLS SHORT ============ -->
+<section class="block" id="sec2">
+  <div class="kicker">Section 2</div>
+  <h2><span class="num">2</span>Where PCA Falls Short</h2>
+
+  <div id="limitationsAccordion"></div>
+
+  <h3>Reproducing the problem: two clusters PCA merges</h3>
+  <p>Two clearly separate groups — widely spread along x, but separated only along y. What happens when PCA reduces them to one dimension?</p>
+
+  <figure>
+    <img src="https://d2beiqkhq929f0.cloudfront.net/public_assets/assets/000/247/152/original/Screenshot_2026-10-15_181733.png?1792068469" alt="Left panel shows two clearly separated groups in 2D; right panel shows the same groups completely overlapping after PCA reduces them to one dimension" loading="lazy">
+    <figcaption>Original 2D data (left) vs. after PCA to 1D (right) — the groups collapse into one blob.</figcaption>
+  </figure>
+
+  <p>PCA picked the x-direction, because that's where the data spreads most. Projecting onto it makes the two groups overlap completely. The structure that mattered — the small gap along y — lived in a direction with <strong>less variance</strong>, so PCA threw it away.</p>
+
+  <figure>
+    <img src="https://d2beiqkhq929f0.cloudfront.net/public_assets/assets/000/244/660/original/PC1_Projection__Groups_Collapse.png?1791282550" alt="Diagram illustrating how projecting onto PC1 collapses two separated groups into one overlapping distribution" loading="lazy">
+  </figure>
+
+  <h3>Global vs. local structure</h3>
+  <ul>
+    <li><strong>Global structure:</strong> the overall shape and spread of the entire dataset. PCA preserves this.</li>
+    <li><strong>Local structure:</strong> who is near whom — the neighbourhoods. PCA can destroy this.</li>
+  </ul>
+  <p>For visualising clusters and neighbourhoods, we want a method that <strong>protects local structure</strong>.</p>
+</section>
+
+<!-- ============ 3. T-SNE INTUITION ============ -->
+<section class="block" id="sec3">
+  <div class="kicker">Section 3</div>
+  <h2><span class="num">3</span>t-SNE: The Intuition</h2>
+  <p><strong>t-SNE (t-distributed Stochastic Neighbor Embedding)</strong> is built on one idea:</p>
+  <blockquote class="idea">If two points are close neighbours in the high-dimensional space, they should be close neighbours in the low-dimensional map.</blockquote>
+
+  <p>Think of a school photo. You don't try to keep every distance between every pair of students exactly right — impossible on a flat page. You only make sure <strong>friends who stand together in real life stand together in the photo</strong>.</p>
+  <p>Take a point A with close neighbours B and C. t-SNE places A, B, and C near each other in 2D. It also keeps points that were far from A relatively far away, but it cares much more about getting the <strong>close relationships</strong> right.</p>
+
+  <figure>
+    <img src="https://d2beiqkhq929f0.cloudfront.net/public_assets/assets/000/244/661/original/Dimensionality_Reduction_Preserves_Neighbor_Relationships.png?1791282623" alt="Diagram showing that dimensionality reduction methods aim to preserve which points are near each other rather than exact distances" loading="lazy">
+  </figure>
+
+  <p class="hint" style="font-family:inherit; color:var(--ink-soft);">Note the careful wording: t-SNE preserves <strong>neighbourhoods</strong> (who is near whom), not exact distances. This will matter when we read maps.</p>
+</section>
+
+<!-- QUIZ 2 -->
+<div class="quiz" data-quiz>
+  <div class="qlabel">Quick check</div>
+  <h4>What is the core idea of t-SNE when reducing dimensions?</h4>
+  <button class="opt" data-correct="false">Maximise the variance along each new axis</button>
+  <button class="opt" data-correct="false">Minimise the number of data points</button>
+  <button class="opt" data-correct="true">Keep points that are neighbours in high dimensions as neighbours in low dimensions</button>
+  <button class="opt" data-correct="false">Increase the dimensionality so groups become separable</button>
+  <div class="feedback"><strong>Correct.</strong> t-SNE builds a low-dimensional map in which local neighbourhoods match those of the original data. Maximising variance is PCA's goal — the other options don't describe any dimensionality-reduction objective.</div>
+</div>
+
+<!-- ============ 4. SEE IT WORK ============ -->
+<section class="block" id="sec4">
+  <div class="kicker">Section 4</div>
+  <h2><span class="num">4</span>See It Work First: PCA vs. t-SNE on Meera's Digits</h2>
+  <p>Before opening the hood, run both methods on the same scans from the PCA class and compare.</p>
+
+  <div class="callout rule">
+    <span class="label">Practical recipe</span>
+    <p style="margin-bottom:0;">For t-SNE on high-dimensional data: first reduce with PCA to ~50 dimensions (fast, removes noise), then run t-SNE to 2D. This is standard practice, because t-SNE's cost grows quickly with the number of points and dimensions.</p>
+  </div>
+
+  <details class="codebox">
+    <summary>Show code &amp; output</summary>
+    <div>
+<pre>from sklearn.manifold import TSNE
+
+# PCA to 2D (what we did last class)
+Z_pca = PCA(n_components=2).fit_transform(X)
+
+# t-SNE: PCA to 50D first, then t-SNE to 2D
+X50 = PCA(n_components=50, random_state=0).fit_transform(X)
+Z_tsne = TSNE(n_components=2, perplexity=30, init="pca", random_state=42).fit_transform(X50)
+
+fig, ax = plt.subplots(1, 2, figsize=(15, 6))
+for a, Z, title in zip(ax, [Z_pca, Z_tsne], ["PCA (2D)", "t-SNE (2D)"]):
+    a.scatter(Z[:, 0], Z[:, 1], c=y, cmap="tab10", s=4, alpha=0.7)
+    a.set_title(title)</pre>
+    </div>
+  </details>
+
+  <figure>
+    <img src="https://d2beiqkhq929f0.cloudfront.net/public_assets/assets/000/247/153/original/Screenshot_2026-10-15_181825.png?1792068515" alt="Side-by-side comparison: PCA scatter plot of MNIST digits with most digits overlapping, versus t-SNE scatter plot showing ten clearly separated digit islands" loading="lazy">
+    <figcaption>PCA (left) vs. t-SNE (right) on the same 5,000 digit scans.</figcaption>
+  </figure>
+
+  <ul>
+    <li><strong>PCA (left):</strong> a few digits separate, but most overlap in a big blob.</li>
+    <li><strong>t-SNE (right):</strong> digits form <strong>distinct islands</strong>, even though t-SNE never saw the labels.</li>
+    <li>Islands that sit close together (e.g. 4, 7 and 9) are digits that genuinely look alike, so their neighbourhoods overlap.</li>
+  </ul>
+
+  <figure>
+    <img src="https://d2beiqkhq929f0.cloudfront.net/public_assets/assets/000/244/662/original/PCA_vs_t-SNE__MNIST_Digit_Embeddings.png?1791282920" alt="Annotated comparison diagram of PCA versus t-SNE embeddings on MNIST digits" loading="lazy">
+  </figure>
+
+  <div class="card" style="background:var(--p-100); border:none;">
+    <p style="margin:0;">So how does t-SNE do this? Three steps: <strong>(1)</strong> measure neighbour similarities in the high-dimensional space, <strong>(2)</strong> define neighbour similarities in the low-dimensional map, <strong>(3)</strong> move the map points until the two sets of similarities match.</p>
+  </div>
+</section>
+
+<!-- ============ 5. STEP 1: NEIGHBOUR PROBABILITY ============ -->
+<section class="block" id="sec5">
+  <div class="kicker">Section 5</div>
+  <h2><span class="num">5</span>Inside t-SNE, Step 1: Turning Distance into "Neighbour Probability"</h2>
+  <p>We need a score that says how likely it is that point <em>j</em> is a neighbour of point <em>i</em>. Close points should score high, far points should score near zero.</p>
+
+  <h3>A first (failed) attempt: inverse distance</h3>
+  <p>A tempting rule is "probability is proportional to 1/distance." Two problems appear:</p>
+  <ul>
+    <li>At distance <strong>zero</strong> the value shoots to <strong>infinity</strong> — not a valid probability.</li>
+    <li>Near small distances, a <strong>tiny increase in distance</strong> causes a <strong>huge drop</strong> in score — too violent to be a stable neighbourhood measure.</li>
+  </ul>
+
+  <h3>Better: a Gaussian (bell curve) centred on each point</h3>
+  <p>For point <em>i</em>, place a bell curve over it. A point <em>j</em> gets a similarity that decays smoothly with squared distance. It's <strong>smooth</strong> (no sudden jumps, no infinity at zero) and <strong>normalised</strong> (divided by the sum over all other points, so values for point <em>i</em> add up to 1 — real probabilities).</p>
+
+  <figure>
+    <img src="https://d2beiqkhq929f0.cloudfront.net/public_assets/assets/000/244/663/original/Gaussian_Weighting_Around_a_Data_Point.png?1791282932" alt="Diagram of a Gaussian bell curve centred on a data point, with nearby points receiving high weight and distant points receiving near-zero weight" loading="lazy">
+  </figure>
+
+  <div class="widget">
+    <h4>How bell-curve width (σ) shapes "closeness" <span class="tag">interactive</span></h4>
+    <p class="hint">A narrow σ only counts very close points as neighbours; a wide σ lets even far points count. Drag σ and watch the curve.</p>
+    <svg class="viz" id="gaussSigmaSvg" viewBox="0 0 640 220" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Gaussian bell curve whose width changes with sigma"></svg>
+    <div class="control-row">
+      <label for="sigmaSlider" class="sans" style="font-weight:700; color:var(--p-700);">σ (width):</label>
+      <input type="range" id="sigmaSlider" min="0.3" max="3" step="0.05" value="1">
+      <span class="readout" id="sigmaReadout">σ = 1.00</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ADAPTIVE SIGMA ============ -->
+<section class="block" id="sec5b">
+  <h3>Why does each point get its own width, σᵢ?</h3>
+  <p>Suppose point <em>i</em> sits in a <strong>dense</strong> region and point <em>j</em> in a <strong>sparse</strong> region. Take the same distance in both cases:</p>
+  <ul>
+    <li>In the dense region, that distance is large compared with the typical neighbour spread — the other point is <strong>far away relative to the neighbourhood</strong>.</li>
+    <li>In the sparse region, the same distance is perfectly normal — the other point is <strong>part of the neighbourhood</strong>.</li>
+  </ul>
+  <p>So the bell's width adapts to local density: <strong>narrow</strong> in dense regions, <strong>wide</strong> in sparse regions — distance measured <strong>relative to the cluster spread</strong>.</p>
+
+  <h3>How is σᵢ chosen? Perplexity</h3>
+  <p>You don't pick σᵢ directly. You pick <strong>perplexity</strong> — roughly "how many neighbours each point should consider." t-SNE searches for the σᵢ that gives each point that effective number of neighbours. The two directions are then averaged into one symmetric score so all pᵢⱼ sum to 1.</p>
+
+  <h3>Experiment: the same distance, different neighbourhood density</h3>
+  <p>A dense cluster (spread 0.31) and a sparse cluster (spread 1.37), each with an extra point placed exactly 1.0 unit from its centre — the same physical distance in both cases. How "neighbourly" does each one look?</p>
+
+  <figure>
+    <img src="https://d2beiqkhq929f0.cloudfront.net/public_assets/assets/000/247/154/original/Screenshot_2026-10-15_181920.png?1792068569" alt="Scatter plot comparing a tightly packed dense cluster against a widely spread sparse cluster, each with the same number of points" loading="lazy">
+    <figcaption>Same number of points, very different spread.</figcaption>
+  </figure>
+
+  <div class="widget">
+    <h4>Fixed σ vs. adaptive σ <span class="tag">interactive · real results</span></h4>
+    <p class="hint">Probability that the offset point (1.0 unit from the centre) counts as a neighbour — compared under one shared σ versus a σ matched to each cluster's own spread.</p>
+    <div class="btn-row" id="sigmaToggle">
+      <button class="btn active" data-mode="fixed">Fixed σ = 1.0</button>
+      <button class="btn" data-mode="adaptive">Adaptive σ (per cluster)</button>
+    </div>
+    <div class="bar-compare" id="sigmaBars"></div>
+    <p class="hint" style="margin-top:12px; margin-bottom:0;" id="sigmaCaption"></p>
+  </div>
+
+  <p>With one shared width, the offset point looks like a plausible neighbour of the dense cluster (0.0218) even though it's clearly far from a tightly packed group. With an adaptive width, the same point is judged against its own neighbourhood: in the dense cluster its probability collapses to almost zero (0.0004), while in the sparse cluster it stays high (0.0503). That's what a per-point σ buys.</p>
+</section>
+
+<!-- QUIZ 3 -->
+<div class="quiz" data-quiz>
+  <div class="qlabel">Quick check</div>
+  <h4>In the formula for p(j|i), the numerator is divided by the sum over all other points, and each point i has its own σᵢ. What do these two choices do?</h4>
+  <button class="opt" data-correct="false">They make the algorithm faster, and nothing else</button>
+  <button class="opt" data-correct="true">The division turns similarities into probabilities that sum to 1, and σᵢ measures distance relative to local density</button>
+  <button class="opt" data-correct="false">The division removes outliers, and σᵢ standardises the features</button>
+  <button class="opt" data-correct="false">They guarantee the 2D map has no overlapping points</button>
+  <div class="feedback"><strong>Correct.</strong> Normalising makes the values for each point a proper probability distribution. A per-point σᵢ adapts to how crowded the surroundings are, so "close" means "close compared with my neighbours." These are not speed tricks, and they don't handle outliers, standardisation, or map overlap.</div>
+</div>
+
+<!-- ============ 6. CROWDING ============ -->
+<section class="block" id="sec6">
+  <div class="kicker">Section 6</div>
+  <h2><span class="num">6</span>Inside t-SNE, Step 2: The Crowding Problem and the "t"</h2>
+  <p>Now we need similarities in the <strong>low-dimensional map</strong>. A natural idea is to reuse the same Gaussian — it turns out that fails, because of the <strong>crowding problem</strong>.</p>
+
+  <h3>The crowding problem</h3>
+  <p>Imagine four points A, B, C, D in 2D, where A is at the centre and B, C, D are all equidistant from A and from each other. Squash them onto a <strong>1D line</strong>: put A in the middle, B to its left — C must be as far from B as from A, and this fails. No matter where C goes, some distance is wrong.</p>
+  <p>There is simply <strong>not enough room in low dimensions</strong>. High-dimensional space has far more "room around a point":</p>
+
+  <div class="widget">
+    <h4>How many mutually equidistant points fit? <span class="tag">interactive</span></h4>
+    <p class="hint">In d dimensions, you can fit d + 1 points that are all the same distance from each other. Slide to see how room shrinks as you compress into fewer dimensions.</p>
+    <div class="control-row">
+      <label for="roomSlider" class="sans" style="font-weight:700; color:var(--p-700);">Dimensions:</label>
+      <input type="range" id="roomSlider" min="0" max="2" step="1" value="0">
+      <span class="readout" id="roomReadout">2D</span>
+    </div>
+    <svg class="viz" id="roomSvg" viewBox="0 0 640 170" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Diagram showing the number of mutually equidistant points that fit in a given number of dimensions"></svg>
+  </div>
+
+  <p>Points that are <strong>moderately</strong> far apart in high dimensions have nowhere to go in 2D, so they get <strong>crushed together in the middle</strong>, and clusters blur into one blob.</p>
+
+  <figure>
+    <img src="https://d2beiqkhq929f0.cloudfront.net/public_assets/assets/000/244/665/original/2D_to_1D_Distance_Preservation_Diagram.png?1791283111" alt="Diagram illustrating how squashing points from 2D to 1D breaks some pairwise distances, causing points to crowd together" loading="lazy">
+  </figure>
+
+  <h3>The fix: a heavy-tailed distribution in the low-dimensional space</h3>
+  <p>Instead of a Gaussian, t-SNE uses a <strong>Student t-distribution with 1 degree of freedom</strong> in the map. The key difference is the <strong>tails</strong>: a Gaussian dies out extremely fast, while the t-distribution decays slowly.</p>
+  <ul>
+    <li>Points that are moderately far apart in high-D are allowed to sit <strong>much farther apart</strong> in the map without being penalised.</li>
+    <li>That frees up space, so clusters <strong>push apart</strong> into separate islands instead of being crushed into one blob.</li>
+    <li>Close neighbours still stay close.</li>
+  </ul>
+  <p>This is where the "t" in <strong>t-SNE</strong> comes from.</p>
+
+  <div class="widget">
+    <h4>Gaussian vs. Student-t: why the tails matter <span class="tag">interactive · exact formulas</span></h4>
+    <p class="hint">Both curves plotted from their exact formulas — Gaussian: e<sup>−d²/2</sup>, Student-t: 1/(1+d²). Drag the marker to compare similarity at any distance.</p>
+    <svg class="viz" id="tailsSvg" viewBox="0 0 640 260" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Line chart comparing Gaussian and Student-t similarity curves over distance"></svg>
+    <div class="control-row">
+      <label for="distSlider" class="sans" style="font-weight:700; color:var(--p-700);">Distance:</label>
+      <input type="range" id="distSlider" min="0" max="6" step="0.1" value="1">
+      <span class="readout" id="distReadout">d = 1.0</span>
+    </div>
+    <div class="stat-mini">
+      <span class="stat-pill" id="gaussStat">Gaussian: 0.60653</span>
+      <span class="stat-pill" id="studentStat">Student-t: 0.50000</span>
+    </div>
+  </div>
+
+  <p>At distance 5, the Gaussian similarity is essentially zero, while the t-distribution still gives a small but real value. So in the map, two moderately-far clusters can be placed <strong>far apart</strong> at little cost — relieving the crowding.</p>
+</section>
+
+<!-- QUIZ 4 -->
+<div class="quiz" data-quiz>
+  <div class="qlabel">Quick check</div>
+  <h4>Which design choice in t-SNE directly addresses the crowding problem?</h4>
+  <button class="opt" data-correct="false">Using the Gaussian in both the high-D and low-D spaces</button>
+  <button class="opt" data-correct="false">Assigning infinite probability to points at distance zero</button>
+  <button class="opt" data-correct="true">Using a heavy-tailed Student t-distribution for similarities in the low-dimensional map</button>
+  <button class="opt" data-correct="false">Increasing the perplexity to its maximum</button>
+  <div class="feedback"><strong>Correct.</strong> The heavy tails let moderately distant points sit far apart in 2D without a large penalty, giving crowded clusters room to separate. A Gaussian in both spaces is what causes crowding; infinite probabilities are invalid and unstable; perplexity controls neighbourhood size, not crowding.</div>
+</div>
+
+<!-- ============ 7. MOVING POINTS ============ -->
+<section class="block" id="sec7">
+  <div class="kicker">Section 7</div>
+  <h2><span class="num">7</span>Inside t-SNE, Step 3: Moving the Points</h2>
+  <p>We now have two sets of numbers: <strong>p<sub>ij</sub></strong> (how neighbourly points i and j are in the original space — fixed) and <strong>q<sub>ij</sub></strong> (how neighbourly they are in the map — changes as points move). We want them to agree.</p>
+  <p>The mismatch is measured with the <strong>Kullback-Leibler (KL) divergence</strong>. If p<sub>ij</sub> ≈ q<sub>ij</sub> everywhere, the divergence is ≈ 0 — the map respects the original neighbourhoods. It's <strong>large</strong> when two points are neighbours in high-D but far apart in the map — a heavy penalty for <strong>tearing neighbours apart</strong>. It's <strong>gentle</strong> the other way (non-neighbours placed close), which is why t-SNE cares more about local than global structure.</p>
+
+  <h3>How the points move</h3>
+  <p>Starting from random points in 2D, gradient descent nudges each point: where p<sub>ij</sub> &gt; q<sub>ij</sub> (should be closer than they are), the term <strong>pulls</strong> i and j together; where p<sub>ij</sub> &lt; q<sub>ij</sub> (too close), it <strong>pushes</strong> them apart.</p>
+
+  <blockquote class="idea">The map is a system of springs where neighbours attract and non-neighbours repel, until it settles.</blockquote>
+
+  <figure>
+    <img src="https://d2beiqkhq929f0.cloudfront.net/public_assets/assets/000/244/667/original/From_Random_Points_to_Clear_Clusters.png?1791283184" alt="Diagram showing random scattered points gradually settling into clear, separated clusters through gradient descent" loading="lazy">
+  </figure>
+
+  <p>Two optimisation tricks make the <code>sklearn</code> defaults make sense: <strong>early exaggeration</strong> (the p<sub>ij</sub> are multiplied by a constant in the first iterations, so tight clusters form early with empty space between them), and standard <strong>momentum and learning rate</strong> tools for convergence.</p>
+
+  <div class="callout ai">
+    <span class="label">AI exploration · make the algorithm visible</span>
+    <p><em>"Here is my from-scratch t-SNE function. Modify it to save a snapshot of Y every 25 iterations, then write matplotlib code that shows the snapshots in a grid (or an animation) coloured by digit. Also add a second plot of KL divergence versus iteration. Then explain, in simple terms, what 'early exaggeration' does by comparing a run with exaggeration=1 and exaggeration=12."</em></p>
+    <p style="margin-bottom:0;">Then answer: at what iteration do the clusters become visible? What changes when you switch off early exaggeration? Does the KL curve flatten when the map stops changing?</p>
+  </div>
+</section>
+
+<!-- ============ MINI T-SNE FROM SCRATCH ============ -->
+<section class="block" id="sec7b">
+  <h3>Build a mini t-SNE yourself (about 50 lines)</h3>
+  <p>A bare-bones t-SNE that follows exactly the three steps above, run on 1,000 images of the small 8×8 sklearn digits dataset (64 features) so it finishes in seconds.</p>
+
+  <div class="stepper" id="scratchStepper"></div>
+  <div class="step-view" id="scratchStepView"></div>
+
+  <details class="codebox">
+    <summary>Show full code</summary>
+    <div>
+<pre>def _hbeta(D, beta):
+    D = D - D.min()
+    P = np.exp(-D * beta)
+    sumP = P.sum()
+    H = np.log(sumP) + beta * np.sum(D * P) / sumP
+    return H, P / sumP
+
+def high_dim_P(X, perplexity=30.0, tol=1e-5):
+    n = X.shape[0]
+    sq = (X ** 2).sum(1)
+    D = np.maximum(sq[:, None] + sq[None, :] - 2 * X @ X.T, 0)
+    P = np.zeros((n, n))
+    target = np.log(perplexity)
+    for i in range(n):
+        beta, lo, hi = 1.0, -np.inf, np.inf
+        Di = np.delete(D[i], i)
+        H, Pi = _hbeta(Di, beta)
+        for _ in range(60):
+            diff = H - target
+            if abs(diff) < tol: break
+            if diff > 0:
+                lo = beta; beta = beta * 2 if hi == np.inf else (beta + hi) / 2
+            else:
+                hi = beta; beta = beta / 2 if lo == -np.inf else (beta + lo) / 2
+            H, Pi = _hbeta(Di, beta)
+        P[i, np.arange(n) != i] = Pi
+    P = (P + P.T) / (2 * n)
+    return np.maximum(P, 1e-12)
+
+def tsne_from_scratch(X, perplexity=30, n_iter=500, lr=200, exaggeration=4, seed=0):
+    n = X.shape[0]
+    P = high_dim_P(X, perplexity)
+    rng = np.random.RandomState(seed)
+    Y = rng.randn(n, 2) * 1e-2
+    update = np.zeros_like(Y)
+    history = []
+    for it in range(n_iter):
+        ex = exaggeration if it < 100 else 1.0
+        mom = 0.5 if it < 100 else 0.8
+        sq = (Y ** 2).sum(1)
+        num = 1.0 / (1.0 + sq[:, None] + sq[None, :] - 2 * Y @ Y.T)
+        np.fill_diagonal(num, 0)
+        Q = np.maximum(num / num.sum(), 1e-12)
+        PQ = (ex * P - Q) * num
+        grad = 4 * (PQ.sum(1)[:, None] * Y - PQ @ Y)
+        update = mom * update - lr * grad
+        Y = Y + update
+        Y -= Y.mean(0)
+        if it % 50 == 0:
+            history.append((it, np.sum(P * np.log(P / Q))))
+    return Y, history</pre>
+    </div>
+  </details>
+
+  <h3>Running it on 1,000 digits</h3>
+  <p>Each image is 8×8 = 64 numbers (brightness 0–16, scaled to 0–1). 1,000 random images are picked since the from-scratch version is slower than sklearn's. Labels are used only to colour the final plot — t-SNE never sees them.</p>
+
+  <div class="widget">
+    <h4>KL divergence during training <span class="tag">interactive · real output</span></h4>
+    <p class="hint">The exact values printed by the from-scratch run above. Lower is better — it means the map increasingly agrees with the original neighbourhoods.</p>
+    <svg class="viz" id="klSvg" viewBox="0 0 640 240" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Line chart of KL divergence decreasing over training iterations"></svg>
+  </div>
+
+  <figure>
+    <img src="https://d2beiqkhq929f0.cloudfront.net/public_assets/assets/000/247/157/original/Screenshot_2026-10-15_182153.png?1792068724" alt="Scatter plot of the from-scratch t-SNE embedding of 1,000 digit images, coloured by true digit label, showing distinct clusters" loading="lazy">
+    <figcaption>t-SNE written from scratch (1,000 digits, 64 features) — islands emerge from 50 lines of code.</figcaption>
+  </figure>
+
+  <p>Digit groups emerge as islands, produced entirely by this from-scratch implementation. <code>sklearn</code> does the same job with many speed-ups (it approximates distant interactions with the Barnes-Hut method so large datasets are feasible).</p>
+</section>
+
+<!-- ============ 8. PERPLEXITY ============ -->
+<section class="block" id="sec8">
+  <div class="kicker">Section 8</div>
+  <h2><span class="num">8</span>Hyperparameters: What Perplexity Does to Your Map</h2>
+  <p>Perplexity is the main knob — roughly "how many neighbours each point considers."</p>
+  <ul>
+    <li>It's a setting you <strong>choose</strong>. It is not calculated from the data, and it is not the size of any cluster.</li>
+    <li>A cluster can be much larger or smaller than the perplexity value — perplexity only controls how many neighbours each point pays attention to.</li>
+  </ul>
+
+  <div class="widget">
+    <h4>Perplexity explorer <span class="tag">interactive</span></h4>
+    <p class="hint">Click a value to see what it does to the map, run on 3,000 of Meera's digit scans.</p>
+    <div class="btn-row" id="perplexityToggle">
+      <button class="btn" data-p="low">Low (2–5)</button>
+      <button class="btn active" data-p="mid">Moderate (20–50)</button>
+      <button class="btn" data-p="high">High (100+)</button>
+    </div>
+    <div class="card" id="perplexityDesc" style="margin:14px 0 0; background:var(--p-100); border:none;"></div>
+  </div>
+
+  <figure>
+    <img src="https://d2beiqkhq929f0.cloudfront.net/public_assets/assets/000/247/159/original/Screenshot_2026-10-15_182239.png?1792068768" alt="Three t-SNE maps side by side at perplexity 5, 30 and 100, showing fragmented clusters, clean islands, and merged blurry structure respectively" loading="lazy">
+    <figcaption>Perplexity 5 (fragmented) · 30 (clean islands) · 100 (merged, blurry).</figcaption>
+  </figure>
+
+  <div class="card" style="background:var(--p-100); border:none;">
+    <p style="margin:0;">The lesson: <strong>never trust one t-SNE picture</strong>. Try several perplexities, and trust only the structure that <strong>appears in all of them</strong>.</p>
+  </div>
+
+  <figure>
+    <img src="https://d2beiqkhq929f0.cloudfront.net/public_assets/assets/000/244/668/original/t-SNE_Perplexity_Comparison_Infographic.png?1791283358" alt="Infographic summarising how low, moderate and high perplexity values change the appearance of a t-SNE map" loading="lazy">
+  </figure>
+
+  <ul>
+    <li>The number of iterations matters too. If t-SNE stops too early, the map hasn't settled — check the KL divergence: when it flattens, the map has stopped changing.</li>
+    <li>Re-run t-SNE with a few different iteration counts as well as a few perplexities. Trust a cluster only if its shape stays the same across all of these runs.</li>
+    <li>Even with the same perplexity and iteration count, results can vary slightly, because t-SNE starts from a random layout. Fixing <code>random_state</code> makes one run repeatable — it does not make that one layout the truth.</li>
+  </ul>
+
+  <div class="callout ai">
+    <span class="label">AI exploration · is that cluster real?</span>
+    <p><em>"I have a 50-dimensional matrix X50 and sklearn's TSNE. Write code that runs t-SNE with 3 different random_state values and 3 perplexities (9 runs), then for a chosen set of points (say all points labelled 7) computes how consistently they stay together, using for example the overlap of their k nearest neighbours in each 2D map. Explain what a score like this tells me about whether a visual cluster is real."</em></p>
+    <p style="margin-bottom:0;">Then answer: which islands are stable across runs, and which look different every time? What would you tell the operations team about the unstable ones?</p>
+  </div>
+</section>
+
+<!-- QUIZ 5 -->
+<div class="quiz" data-quiz>
+  <div class="qlabel">Quick check</div>
+  <h4>Meera's t-SNE map shows island A much larger than island B, and the gap between A and C much wider than between A and B. The operations head concludes: "A is the most varied handwriting group, and C is the most different from A." Which conclusions are justified?</h4>
+  <button class="opt" data-correct="false">Both conclusions are justified</button>
+  <button class="opt" data-correct="false">Only the size conclusion is justified</button>
+  <button class="opt" data-correct="false">Only the gap conclusion is justified</button>
+  <button class="opt" data-correct="true">Neither conclusion is justified</button>
+  <div class="feedback"><strong>Correct — neither.</strong> t-SNE adapts to local density, so island size doesn't reflect how spread out the original group is, and gaps between islands don't reflect true distances. Both are artefacts of the method. What can be trusted: points in the same island are neighbours in the original space. Any claim about variation or dissimilarity needs to be checked in the original data.</div>
+</div>
+
+<!-- ============ 9. HOW TO READ A MAP ============ -->
+<section class="block" id="sec9">
+  <div class="kicker">Section 9</div>
+  <h2><span class="num">9</span>How to Read a t-SNE Map, and How Not To</h2>
+  <p>t-SNE gives striking pictures, which makes it easy to over-interpret them. Keep these rules in mind.</p>
+
+  <div id="dontAssumeAccordion"></div>
+
+  <h3>PCA vs. t-SNE at a glance</h3>
+  <div class="table-wrap">
+    <table>
+      <tr><th></th><th>PCA</th><th>t-SNE</th></tr>
+      <tr><td>Preserves</td><td>Global variance and structure</td><td>Local neighbourhoods</td></tr>
+      <tr><td>Mapping</td><td>Linear, a reusable projection</td><td>Non-linear, a one-off embedding</td></tr>
+      <tr><td>New data</td><td><code>transform()</code> works</td><td>No <code>transform</code></td></tr>
+      <tr><td>Deterministic</td><td>Yes</td><td>No (random start)</td></tr>
+      <tr><td>Speed</td><td>Very fast</td><td>Slower</td></tr>
+      <tr><td>Best used for</td><td>Compression, preprocessing, a first look</td><td>Visualising clusters</td></tr>
+      <tr><td>Axes meaningful?</td><td>Yes (variance directions)</td><td>No</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ============ WRAP-UP ============ -->
+<section class="block" id="sec10">
+  <div class="story">
+    <h3>Wrap-Up: Back to Meera's Desk</h3>
+    <p>Meera presents her new map to the operations head.</p>
+    <ul>
+      <li>The 4s, 7s and 9s that were piled on top of each other in the PCA plot are now <strong>separate islands</strong>, with visually similar digits sitting next to each other. The operations team now has the neighbourhood map it asked for.</li>
+      <li>She also arrives with a <strong>warning</strong>: island size and the gaps between islands should not be read as real distances, the map changes with perplexity and seed, and new scans cannot be dropped into an existing map.</li>
+      <li style="margin-bottom:0;">For compact storage and model inputs, she keeps <strong>PCA</strong>. For the dashboard map, she uses <strong>t-SNE on PCA-reduced data</strong>.</li>
+    </ul>
+  </div>
+
+  <div class="takeaways">
+    <h3>Key takeaways</h3>
+    <ul>
+      <li>PCA captures <strong>global</strong> variance with a linear, reusable projection — it can destroy <strong>local</strong> neighbourhoods.</li>
+      <li>t-SNE keeps <strong>neighbours as neighbours</strong>. It does not preserve distances.</li>
+      <li><strong>Step 1:</strong> turn high-D distances into neighbour probabilities, using a Gaussian whose width σᵢ adapts to local density (set via <strong>perplexity</strong>).</li>
+      <li><strong>Step 2:</strong> use a <strong>heavy-tailed Student t</strong> in the map to fix the <strong>crowding problem</strong>.</li>
+      <li><strong>Step 3:</strong> minimise the <strong>KL divergence</strong> by gradient descent, with neighbours attracting and non-neighbours repelling.</li>
+      <li>Read maps carefully: sizes and gaps are not meaningful, results vary by run, and there is no <code>transform</code> for new data.</li>
+      <li>Good workflow: standardise or scale, <strong>PCA to about 50 dimensions, then t-SNE</strong>, and compare several perplexities.</li>
+    </ul>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="fname">t-SNE post read</div>
+  <div>An interactive learning article · built from course content on t-distributed Stochastic Neighbor Embedding</div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Reading progress ---------- */
+  var track = document.getElementById('progressTrack');
+  function updateProgress(){
+    var h = document.documentElement;
+    var scrollTop = h.scrollTop || document.body.scrollTop;
+    var scrollH = (h.scrollHeight || document.body.scrollHeight) - h.clientHeight;
+    var pct = scrollH > 0 ? (scrollTop/scrollH)*100 : 0;
+    track.style.width = pct + '%';
+  }
+  document.addEventListener('scroll', updateProgress, {passive:true});
+  updateProgress();
+
+  /* ---------- Quizzes ---------- */
+  document.querySelectorAll('[data-quiz]').forEach(function(quiz){
+    var opts = quiz.querySelectorAll('.opt');
+    var fb = quiz.querySelector('.feedback');
+    var answered = false;
+    opts.forEach(function(opt){
+      opt.addEventListener('click', function(){
+        if(answered) return;
+        answered = true;
+        opts.forEach(function(o){
+          if(o.dataset.correct === 'true'){ o.classList.add('correct'); }
+          else if(o === opt){ o.classList.add('wrong'); }
+        });
+        fb.classList.add('show');
+      });
+    });
+  });
+
+  /* ---------- Reveal answers ---------- */
+  document.querySelectorAll('[data-reveal]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var box = btn.nextElementSibling;
+      var open = box.classList.toggle('show');
+      btn.textContent = open ? 'Hide answer' : 'Reveal answer';
+    });
+  });
+
+  /* ---------- Accordion builder ---------- */
+  function buildAccordion(wrapId, items){
+    var wrap = document.getElementById(wrapId);
+    items.forEach(function(item){
+      var el = document.createElement('div');
+      el.className = 'accordion-item';
+      el.innerHTML =
+        '<button class="accordion-head" aria-expanded="false">'+
+          '<span>'+item.t+'</span><span class="chevron">▾</span>'+
+        '</button>'+
+        '<div class="accordion-body"><div>'+item.body+'</div></div>';
+      wrap.appendChild(el);
+      var head = el.querySelector('.accordion-head');
+      var body = el.querySelector('.accordion-body');
+      head.addEventListener('click', function(){
+        var isOpen = el.classList.toggle('open');
+        head.setAttribute('aria-expanded', isOpen);
+        body.style.maxHeight = isOpen ? body.scrollHeight + 'px' : 0;
+      });
+    });
+  }
+
+  buildAccordion('limitationsAccordion', [
+    {t:"Hard to interpret", body:"<p style='margin:0;'>Each PC is a linear mix of all original features. A \"0.6 × weight + 0.8 × height\" axis has no real-world name.</p>"},
+    {t:"Information vs. dimensions trade-off", body:"<p style='margin:0;'>The more dimensions you drop, the more variance you lose. You need to pick the sweet spot.</p>"},
+    {t:"Not robust to outliers", body:"<p style='margin:0;'>Outliers create huge variance in their direction, so PCs tilt toward them.</p>"},
+    {t:"Misses local structure", body:"<p style='margin:0;'>It chases overall (global) spread, even if that squashes neighbourhoods together — this is Meera's problem.</p>"}
+  ]);
+
+  buildAccordion('dontAssumeAccordion', [
+    {t:"Cluster size means anything", body:"<p style='margin:0;'>t-SNE adapts to local density (that's the job of σᵢ), so dense and sparse groups are drawn at similar sizes.</p>"},
+    {t:"Distances between clusters are meaningful", body:"<p style='margin:0;'>Only neighbourhoods are preserved. Two islands far apart are not necessarily \"more different\" than two nearby ones.</p>"},
+    {t:"The map is identical every run", body:"<p style='margin:0;'>The start is random and the optimisation is stochastic, so layouts change with the seed (use a fixed random_state and init=\"pca\" for stability).</p>"},
+    {t:"You can reuse it on new data", body:"<p style='margin:0;'>There is no <code>transform</code> for new points. You must re-run t-SNE with the new data included, which changes the whole map.</p>"},
+    {t:"It is a general-purpose feature extractor", body:"<p style='margin:0;'>It is built for visualisation. Do not feed t-SNE coordinates to downstream models by default.</p>"},
+    {t:"It scales to millions of points easily", body:"<p style='margin:0;'>Cost grows quickly with data size. Subsample, or reduce with PCA first.</p>"}
+  ]);
+
+  /* ---------- Scaling bar widget ---------- */
+  (function(){
+    var raw = [{l:'Weight (0.723)', v:0.723}, {l:'Height (0.277)', v:0.277}];
+    var std = [{l:'PC1 (0.536)', v:0.536}, {l:'PC2 (0.464)', v:0.464}];
+    var wrap = document.getElementById('scaleBars');
+    var caption = document.getElementById('scaleCaption');
+    var btns = document.querySelectorAll('#scaleToggle .btn');
+    function render(mode){
+      var data = mode === 'raw' ? raw : std;
+      wrap.innerHTML = '';
+      data.forEach(function(d){
+        var pct = (d.v*100).toFixed(1);
+        var row = document.createElement('div');
+        row.className = 'bar-row';
+        row.innerHTML = '<div class="bar-label">'+d.l.split(' (')[0]+'</div>'+
+          '<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;"><span>'+pct+'%</span></div></div>';
+        wrap.appendChild(row);
+      });
+      caption.textContent = mode === 'raw'
+        ? 'Explained variance ratio, unscaled: [0.723, 0.277] — weight (bigger numeric range) grabs most of the variance simply because of its units.'
+        : 'Explained variance ratio, scaled: [0.536, 0.464] — after standardising, the two features share variance almost equally. The data hasn\'t changed, only the units.';
+    }
+    btns.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        btns.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        render(btn.dataset.scale);
+      });
+    });
+    render('raw');
+  })();
+
+  /* ---------- Fixed vs adaptive sigma widget ---------- */
+  (function(){
+    var fixed = [{l:'Dense cluster', v:0.0218, max:0.0603}, {l:'Sparse cluster', v:0.0603, max:0.0603}];
+    var adaptive = [{l:'Dense cluster', v:0.0004, max:0.0503}, {l:'Sparse cluster', v:0.0503, max:0.0503}];
+    var wrap = document.getElementById('sigmaBars');
+    var caption = document.getElementById('sigmaCaption');
+    var btns = document.querySelectorAll('#sigmaToggle .btn');
+    function render(mode){
+      var data = mode === 'fixed' ? fixed : adaptive;
+      var maxV = Math.max.apply(null, data.map(function(d){return d.v;})) || 0.001;
+      wrap.innerHTML = '';
+      data.forEach(function(d){
+        var pct = Math.max(2, (d.v/0.07*100)).toFixed(1);
+        var row = document.createElement('div');
+        row.className = 'bar-row';
+        row.innerHTML = '<div class="bar-label">'+d.l+'</div>'+
+          '<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;"><span>'+d.v.toFixed(4)+'</span></div></div>';
+        wrap.appendChild(row);
+      });
+      caption.textContent = mode === 'fixed'
+        ? 'Fixed σ = 1.0 for both clusters: dense cluster probability = 0.0218, sparse cluster probability = 0.0603.'
+        : 'Adaptive σ (matched to each cluster\'s own spread): dense cluster probability collapses to 0.0004, sparse cluster stays at 0.0503.';
+    }
+    btns.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        btns.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        render(btn.dataset.mode);
+      });
+    });
+    render('fixed');
+  })();
+
+  /* ---------- Gaussian sigma widget ---------- */
+  (function(){
+    var svg = document.getElementById('gaussSigmaSvg');
+    var slider = document.getElementById('sigmaSlider');
+    var readout = document.getElementById('sigmaReadout');
+    function draw(sigma){
+      var w=640,h=220, padL=40,padR=20,padT=16,padB=28;
+      var areaW=w-padL-padR, areaH=h-padT-padB;
+      var xmax=6;
+      function px(x){ return padL + (x/xmax)*areaW; }
+      function py(y){ return (h-padB) - y*areaH; }
+      var d='';
+      for(var xi=0; xi<=200; xi++){
+        var x = (xi/200)*xmax;
+        var y = Math.exp(-(x*x)/(2*sigma*sigma));
+        var X=px(x), Y=py(y);
+        d += (xi===0?'M ':'L ') + X.toFixed(1) + ' ' + Y.toFixed(1) + ' ';
+      }
+      var parts = [];
+      parts.push('<line x1="'+padL+'" y1="'+(h-padB)+'" x2="'+(w-padR)+'" y2="'+(h-padB)+'" stroke="var(--line)"/>');
+      parts.push('<line x1="'+padL+'" y1="'+padT+'" x2="'+padL+'" y2="'+(h-padB)+'" stroke="var(--line)"/>');
+      parts.push('<path d="'+d+'" fill="none" stroke="var(--p-600)" stroke-width="2.5"/>');
+      parts.push('<text x="'+(padL+4)+'" y="'+(padT+12)+'" font-size="11" fill="var(--ink-soft)" font-family="sans-serif">similarity (relative)</text>');
+      parts.push('<text x="'+(w-padR-80)+'" y="'+(h-8)+'" font-size="11" fill="var(--ink-soft)" font-family="sans-serif">distance from point i →</text>');
+      svg.innerHTML = parts.join('');
+    }
+    slider.addEventListener('input', function(){
+      var s = +this.value;
+      readout.textContent = 'σ = ' + s.toFixed(2);
+      draw(s);
+    });
+    draw(1);
+  })();
+
+  /* ---------- Equidistant points widget ---------- */
+  (function(){
+    var data = [{d:'2D', n:3}, {d:'3D', n:4}, {d:'10D', n:11}];
+    var slider = document.getElementById('roomSlider');
+    var readout = document.getElementById('roomReadout');
+    var svg = document.getElementById('roomSvg');
+    function draw(idx){
+      var item = data[idx];
+      readout.textContent = item.d;
+      var w=640,h=170;
+      var cx=w/2, cy=h/2+10, r=60;
+      var n = Math.min(item.n, 10); // cap dots drawn for 10D label (11) to a readable ring
+      var parts = [];
+      parts.push('<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="var(--p-200)" stroke-dasharray="4 4"/>');
+      for(var i=0;i<n;i++){
+        var ang = (2*Math.PI*i/n) - Math.PI/2;
+        var x = cx + r*Math.cos(ang);
+        var y = cy + r*Math.sin(ang);
+        parts.push('<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="7" fill="var(--p-600)"/>');
+      }
+      parts.push('<text x="'+cx+'" y="24" text-anchor="middle" font-size="15" font-weight="800" fill="var(--p-800)" font-family="sans-serif">'+item.d+': up to '+item.n+' mutually equidistant points</text>');
+      svg.innerHTML = parts.join('');
+    }
+    slider.addEventListener('input', function(){ draw(+this.value); });
+    draw(0);
+  })();
+
+  /* ---------- Gaussian vs Student-t tails widget ---------- */
+  (function(){
+    var svg = document.getElementById('tailsSvg');
+    var slider = document.getElementById('distSlider');
+    var readout = document.getElementById('distReadout');
+    var gaussStat = document.getElementById('gaussStat');
+    var studentStat = document.getElementById('studentStat');
+    var w=640,h=260, padL=44,padR=20,padT=18,padB=32;
+    var areaW=w-padL-padR, areaH=h-padT-padB;
+    var xmax=6;
+    function px(x){ return padL + (x/xmax)*areaW; }
+    function py(y){ return (h-padB) - y*areaH; }
+    function gauss(d){ return Math.exp(-(d*d)/2); }
+    function student(d){ return 1/(1+d*d); }
+    function baseCurves(){
+      var dg='', ds='';
+      for(var xi=0; xi<=300; xi++){
+        var x=(xi/300)*xmax;
+        var X=px(x);
+        dg += (xi===0?'M ':'L ') + X.toFixed(1) + ' ' + py(gauss(x)).toFixed(1) + ' ';
+        ds += (xi===0?'M ':'L ') + X.toFixed(1) + ' ' + py(student(x)).toFixed(1) + ' ';
+      }
+      return {dg:dg, ds:ds};
+    }
+    var curves = baseCurves();
+    function draw(d){
+      var parts = [];
+      parts.push('<line x1="'+padL+'" y1="'+(h-padB)+'" x2="'+(w-padR)+'" y2="'+(h-padB)+'" stroke="var(--line)"/>');
+      parts.push('<line x1="'+padL+'" y1="'+padT+'" x2="'+padL+'" y2="'+(h-padB)+'" stroke="var(--line)"/>');
+      parts.push('<path d="'+curves.dg+'" fill="none" stroke="var(--p-300)" stroke-width="2.5"/>');
+      parts.push('<path d="'+curves.ds+'" fill="none" stroke="var(--p-800)" stroke-width="2.5"/>');
+      var X = px(d);
+      parts.push('<line x1="'+X.toFixed(1)+'" y1="'+padT+'" x2="'+X.toFixed(1)+'" y2="'+(h-padB)+'" stroke="var(--ink-soft)" stroke-dasharray="3 3"/>');
+      parts.push('<circle cx="'+X.toFixed(1)+'" cy="'+py(gauss(d)).toFixed(1)+'" r="5" fill="var(--p-300)" stroke="#fff" stroke-width="1.5"/>');
+      parts.push('<circle cx="'+X.toFixed(1)+'" cy="'+py(student(d)).toFixed(1)+'" r="5" fill="var(--p-800)" stroke="#fff" stroke-width="1.5"/>');
+      parts.push('<rect x="'+(w-200)+'" y="'+(padT+4)+'" width="14" height="4" fill="var(--p-300)"/><text x="'+(w-180)+'" y="'+(padT+10)+'" font-size="11" fill="var(--ink-soft)" font-family="sans-serif">Gaussian (high-D)</text>');
+      parts.push('<rect x="'+(w-200)+'" y="'+(padT+20)+'" width="14" height="4" fill="var(--p-800)"/><text x="'+(w-180)+'" y="'+(padT+26)+'" font-size="11" fill="var(--ink-soft)" font-family="sans-serif">Student-t (map)</text>');
+      parts.push('<text x="'+(w-padR-110)+'" y="'+(h-8)+'" font-size="11" fill="var(--ink-soft)" font-family="sans-serif">distance between two points</text>');
+      svg.innerHTML = parts.join('');
+      gaussStat.textContent = 'Gaussian: ' + gauss(d).toFixed(5);
+      studentStat.textContent = 'Student-t: ' + student(d).toFixed(5);
+    }
+    slider.addEventListener('input', function(){
+      var d = +this.value;
+      readout.textContent = 'd = ' + d.toFixed(1);
+      draw(d);
+    });
+    draw(1);
+  })();
+
+  /* ---------- KL divergence chart ---------- */
+  (function(){
+    var svg = document.getElementById('klSvg');
+    var data = [[0,3.407],[50,1.797],[100,1.691],[150,0.909],[200,0.800],[250,0.747],[300,0.715],[350,0.693],[400,0.676],[450,0.663]];
+    var w=640,h=240, padL=50,padR=20,padT=18,padB=34;
+    var areaW=w-padL-padR, areaH=h-padT-padB;
+    var xmax=450, ymax=3.407;
+    function px(x){ return padL + (x/xmax)*areaW; }
+    function py(y){ return (h-padB) - (y/ymax)*areaH; }
+    var d='';
+    var dots = [];
+    data.forEach(function(pt,i){
+      var X=px(pt[0]), Y=py(pt[1]);
+      d += (i===0?'M ':'L ') + X.toFixed(1) + ' ' + Y.toFixed(1) + ' ';
+      dots.push('<circle cx="'+X.toFixed(1)+'" cy="'+Y.toFixed(1)+'" r="4" fill="var(--p-700)"/>'+
+        '<text x="'+X.toFixed(1)+'" y="'+(Y-10).toFixed(1)+'" text-anchor="middle" font-size="10" fill="var(--p-700)" font-family="sans-serif" font-weight="700">'+pt[1].toFixed(2)+'</text>');
+    });
+    var parts = [];
+    parts.push('<line x1="'+padL+'" y1="'+(h-padB)+'" x2="'+(w-padR)+'" y2="'+(h-padB)+'" stroke="var(--line)"/>');
+    parts.push('<line x1="'+padL+'" y1="'+padT+'" x2="'+padL+'" y2="'+(h-padB)+'" stroke="var(--line)"/>');
+    parts.push('<path d="'+d+'" fill="none" stroke="var(--p-500)" stroke-width="2.5"/>');
+    parts.push(dots.join(''));
+    parts.push('<text x="'+(padL+4)+'" y="'+(padT+10)+'" font-size="11" fill="var(--ink-soft)" font-family="sans-serif">KL divergence</text>');
+    parts.push('<text x="'+(w-padR-70)+'" y="'+(h-8)+'" font-size="11" fill="var(--ink-soft)" font-family="sans-serif">iteration</text>');
+    svg.innerHTML = parts.join('');
+  })();
+
+  /* ---------- Mini t-SNE stepper ---------- */
+  (function(){
+    var steps = [
+      {title:"_hbeta — entropy & probability helper", body:"Given distances from one point to all others and a value beta, this shifts distances for numerical stability, turns them into bell-curve weights exp(−D·beta) and normalises into probabilities, then computes the entropy H of those probabilities. beta = 1/(2σ²): large beta → narrow bell, few neighbours; small beta → wide bell, many neighbours. Perplexity = eᴴ."},
+      {title:"high_dim_P — building the P matrix", body:"Computes squared distances between every pair of images at once. For each point, a bisection search finds the beta that gives the target entropy (log of the chosen perplexity) — entropy too high narrows the bell, too low widens it. Each point ends up with its own sigma: the adaptive-sigma idea in code. The result is symmetrised so all pᵢⱼ sum to 1."},
+      {title:"tsne_from_scratch — building Q and moving points", body:"Starts all points at tiny random positions in 2D. Each iteration: compute num = 1/(1+distance²), the heavy-tailed Student-t similarity, normalise it into Q. Compare P and Q for every pair; the gradient attracts where P > Q and repels where Q > P. Momentum and learning rate combine into an update, and the map is re-centred after each move."},
+      {title:"Tracking progress", body:"Every 50 iterations, the KL divergence between P and Q is recorded — the score that should go down as the map improves. By iteration 450 it has dropped from 3.407 to 0.663, and digit groups have separated into visible islands."}
+    ];
+    var dotsWrap = document.getElementById('scratchStepper');
+    var view = document.getElementById('scratchStepView');
+    steps.forEach(function(s,i){
+      var dot = document.createElement('button');
+      dot.className = 'step-dot' + (i===0?' active':'');
+      dot.setAttribute('aria-label','Step '+(i+1));
+      dot.addEventListener('click', function(){ show(i); });
+      dotsWrap.appendChild(dot);
+    });
+    function show(i){
+      Array.from(dotsWrap.children).forEach(function(d,idx){ d.classList.toggle('active', idx===i); });
+      view.innerHTML = '<div class="step-num">'+(i+1)+'</div><h4 style="margin:0 0 8px;">'+steps[i].title+'</h4><p style="margin:0; color:var(--ink-soft);" class="sans">'+steps[i].body+'</p>';
+    }
+    show(0);
+  })();
+
+  /* ---------- Perplexity descriptions ---------- */
+  (function(){
+    var desc = {
+      low: "<strong>Perplexity 2–5:</strong> each point only cares about a handful of neighbours, so the map breaks into many tiny fragments.",
+      mid: "<strong>Perplexity 20–50 (30 is the default):</strong> a good balance in most cases — at 30, the ten digit islands come out clean.",
+      high: "<strong>Perplexity 100+:</strong> each point considers a huge neighbourhood, so local detail blurs and the map becomes more global and less clearly clustered."
+    };
+    var box = document.getElementById('perplexityDesc');
+    var btns = document.querySelectorAll('#perplexityToggle .btn');
+    function render(key){ box.innerHTML = '<p style="margin:0;">'+desc[key]+'</p>'; }
+    btns.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        btns.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        render(btn.dataset.p);
+      });
+    });
+    render('mid');
+  })();
+
+})();
+</script>
+</body>
+</html>
